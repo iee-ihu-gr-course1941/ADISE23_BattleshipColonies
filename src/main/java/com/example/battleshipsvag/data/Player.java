@@ -10,4 +10,5 @@ import lombok.Setter;
 public class Player extends AbstractEntity {
     private String playerName;
     private String password = "NO PASSWORD";
+    private int wins;
 }

@@ -1,2 +1,3 @@
-# ADISE23_BattleshipColonies
-Battleship game with a twist
+# ADISE23_The Battleship Experience
+
+Battleship game with UI

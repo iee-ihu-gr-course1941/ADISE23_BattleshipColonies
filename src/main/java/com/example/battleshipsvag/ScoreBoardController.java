@@ -1,6 +1,8 @@
 package com.example.battleshipsvag;
 
 import com.example.battleshipsvag.resources.ScoredGameResource;
+import com.example.battleshipsvag.resources.ScoredPlayerResource;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,10 +17,14 @@ import java.util.List;
 public class ScoreBoardController {
     private final ScoreBoardService scoreBoardService;
 
-    @GetMapping
+    @GetMapping("/games")
     public ResponseEntity<List<ScoredGameResource>> getScoreBoard() {
         return ResponseEntity.ok(scoreBoardService.getScoreBoard());
     }
 
-}
+    @GetMapping("/players")
+    public ResponseEntity<List<ScoredPlayerResource>> getPlayerWins() {
+        return ResponseEntity.ok(scoreBoardService.getPlayers());
+    }
 
+}

@@ -12,8 +12,6 @@ public class AbstractEntity {
     @GeneratedValue(strategy= GenerationType.IDENTITY)
     private Long id;
 
-    @Version
-    @Column
-    private Long version;
+    private Long version = 0L;
 
 }

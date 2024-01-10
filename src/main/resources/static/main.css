@@ -1,0 +1,189 @@
+.game-board td {
+    height: 100%;
+    text-align: center;
+    vertical-align: middle;
+    font-size: 30px;
+    border: 1px solid black;
+}
+
+.game-board td button {
+    width: 60px;
+    height: 60px;
+    padding: 0;
+    border: none;
+}
+
+.game-board td button image {
+    width: 60px;
+    height: 60px;
+}
+
+.game-ship-display {
+    display: flex;
+    justify-content: space-between;
+}
+
+.game-ship-display > button {
+    background: cyan;
+    border: 1px solid black;
+    padding: 0;
+}
+
+#backgroundPage {
+    background-image: url('images/loginIMG.jpg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-color: aqua;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: -1;
+  }
+
+#loginContainer {
+    background-image: url('images/loginIMG2.jpg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-color: aqua;
+    border: 2px solid black;
+    height: 99.5vh;
+    width: 70%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin-left: 15%;
+}
+
+#join-game-button{
+    padding: 10px 20px;
+    font-size: 30px;
+    border-radius: 7px;
+    cursor: pointer;
+    background-color: white;
+    margin: 20px
+}
+
+#join-game-name_input {
+    border-radius: 10px;
+    opacity: 0.8;
+    width: 250px;
+    padding: 10px;
+    border: 1px solid black;
+    margin-bottom:30px;
+}
+
+#title{
+    font-size: 100px;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    font-family: Arial, sans-serif;
+    margin-bottom:200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#battleBody {
+    background-image: url(images/battlemap.jpg);
+    background-size: auto;
+    background-color: aqua;
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    position: absolute;
+        background-repeat: repeat;
+}
+
+header{
+    text-align: center;
+}
+
+footer{
+    text-align: center;
+    justify-content: space-between;
+}
+
+#game-phase-display{
+    padding: 20px;
+    font-size: 40px;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    font-family: Arial, sans-serif;
+}
+
+.game-board {
+    width: 90%%;
+    aspect-ratio: 1 / 1;
+    background-color: rgba(255, 255, 255, 0.3);
+    border-radius: 5px;
+    padding: 20px;
+}
+
+#game-actions-list{
+    font-size: 20px;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    font-family: Arial, sans-serif;
+}
+
+#game-area{
+    width: 90%;
+    height: 70%;
+    display: inline-block;
+    padding: 10px;
+    margin: 10px;
+    border-radius: 5px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.game-section {
+    width: 600px;
+    height: 600px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
+h2 {
+    font-size: 24px;
+    margin-top: 0;
+    padding-bottom:30px;
+}
+
+#resetShipsButton,#placeShipsButton,#startButton{
+    padding: 10px 20px;
+    font-size: 30px;
+    border-radius: 7px;
+    cursor: pointer;
+    background-color: white;
+    margin: 20px
+}
+
+#scoreboardBackground {
+    background-image: url('images/backgroundScoreboardIMG.jpg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-color: aqua;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: -1;
+  }
+
+  #scoreboardbutton {
+    padding: 10px 20px;
+    font-size: 30px;
+    font-color: black;
+    border-radius: 7px;
+    cursor: pointer;
+    background-color: white;
+    margin: 20px
+  }

@@ -2,6 +2,7 @@ package com.example.battleshipsvag;
 
 import com.example.battleshipsvag.data.GamePlayer;
 import com.example.battleshipsvag.resources.ScoredGameResource;
+import com.example.battleshipsvag.resources.ScoredPlayerResource;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -13,6 +14,7 @@ import java.util.stream.Collectors;
 public class ScoreBoardService {
 
     private final ScoreBoardRepository scoreBoardRepository;
+    private final ScoreboardPlayerRepository scoreboardPlayerRepository;
     public List<ScoredGameResource> getScoreBoard() {
         return scoreBoardRepository.findAllOrderByIDDesc().stream()
                 .parallel()
@@ -32,4 +34,18 @@ public class ScoreBoardService {
                 .toList();
 
     }
+
+    public List<ScoredPlayerResource> getPlayers() {
+        return scoreboardPlayerRepository.findAllOrderByWinsDesc().stream()
+                .parallel()
+                .map(player -> {
+                    ScoredPlayerResource scoredPlayerResource = new ScoredPlayerResource();
+                    scoredPlayerResource.setPlayerName(player.getPlayerName());
+                    scoredPlayerResource.setPlayerScore(player.getWins());
+                    return scoredPlayerResource;
+                })
+                .toList();
+
+    }
+
 }

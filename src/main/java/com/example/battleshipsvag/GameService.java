@@ -1,9 +1,10 @@
 package com.example.battleshipsvag;
 
-import com.example.battleshipsvag.GameRecordRepository;
-import com.example.battleshipsvag.PlayerRepository;
 import com.example.battleshipsvag.data.*;
-import com.example.battleshipsvag.resources.AttackResultResource;
+import com.example.battleshipsvag.exceptions.GenericApiException;
+import com.example.battleshipsvag.gen.DataGenerator;
+import com.example.battleshipsvag.resources.AttackResult;
+import com.example.battleshipsvag.resources.BoardCellResource;
 import com.example.battleshipsvag.resources.GameResource;
 import lombok.RequiredArgsConstructor;
 import lombok.Synchronized;
@@ -11,6 +12,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,11 +32,15 @@ public class GameService {
         GamePlayer gamePlayer = game.getGamePlayerOrNull(playerName);
 
         if (gamePlayer == null) {
-            gamePlayer = new GamePlayer();
-        }
+            if (GameStatus.FINISHED.equals(game.getStatus())) {
+                throw new GenericApiException("Game is finished, please wait for a new game to start");
+            }
 
-        gamePlayer.setPlayerName(player.getPlayerName());
-        game.addGamePlayer(gamePlayer);
+            gamePlayer = new GamePlayer();
+            gamePlayer.setPlayerName(player.getPlayerName());
+            game.addGamePlayer(gamePlayer);
+            updateGame(game);
+        }
 
         log.info("Player {} joined the current game", playerName);
 
@@ -67,10 +77,25 @@ public class GameService {
 
     private Game findGame() {
         if (runningGame == null) {
-            throw new IllegalStateException("No game is running");
+            throw new GenericApiException("No game is running");
         }
 
         return runningGame;
+    }
+
+    public List<BoardCellResource> getRandomShipPositions() {
+        return DataGenerator.generateShipPlacement()
+                .entrySet().stream()
+                .map(entry -> entry.getValue().stream().map(index -> {
+                    BoardCellResource boardCellResource = new BoardCellResource();
+                    boardCellResource.setShipType(entry.getKey());
+                    boardCellResource.setBoardIndex(index);
+                    boardCellResource.setHit(false);
+                    return boardCellResource;
+                }).toList())
+                .flatMap(Collection::stream)
+                .sorted(Comparator.comparing(BoardCellResource::getBoardIndex))
+                .collect(Collectors.toList());
     }
 
     public GameResource getGameResourceForPlayer(String playerName) {
@@ -81,9 +106,33 @@ public class GameService {
         GameResource gameResource = new GameResource();
         gameResource.setPlayerName(playerName);
 
-        gameResource.setCanStartGame(player.isLeader() && game.bothPlayersPresent());
+//        gameResource.setCanStartGame(player.isLeader() && game.bothPlayersPresent());
 
-        gameResource.setStatus(game.getStatus());
+        gameResource.setStatus(player.getStatus());
+        gameResource.setBoard(player.getBoard().stream().map(boardCell -> {
+            BoardCellResource boardCellResource = new BoardCellResource();
+            boardCellResource.setShipType(boardCell.getShipType());
+            boardCellResource.setHit(boardCell.isHit());
+            boardCellResource.setBoardIndex(boardCell.getBoardIndex());
+            return boardCellResource;
+        }).toList());
+
+        Optional.ofNullable(game.getOpponentPlayerOrNull(playerName))
+                .ifPresent(opponentPlayer ->
+                        gameResource.setOpponentBoard(opponentPlayer.getBoard().stream().map(boardCell -> {
+                                BoardCellResource boardCellResource = new BoardCellResource();
+                                boardCellResource.setHit(boardCell.isHit());
+                                if (boardCell.isHit()) {
+                                    boardCellResource.setShipType(boardCell.getShipType());
+                                }
+                                boardCellResource.setBoardIndex(boardCell.getBoardIndex());
+                                return boardCellResource;
+                            }).toList()
+                        )
+                );
+        gameResource.setVersion(String.valueOf(game.getVersion()));
+
+        gameResource.setHasWon(playerName.equals(game.getWinner()));
 
         return gameResource;
     }
@@ -102,26 +151,22 @@ public class GameService {
         Game game = findGame();
 
         if (game.getStatus() != GameStatus.IN_PROGRESS) {
-            throw new IllegalStateException("Game is not in progress");
+            throw new GenericApiException("Game is not in progress");
         }
 
         GamePlayer gamePlayer = game.getGamePlayer(playerName);
-
-        if (gamePlayer.isHasPlacedShips()) {
-            throw new IllegalStateException("Player has already placed their ships");
-        }
 
         List<BoardCell> board = gamePlayer.getBoard();
 
 
         shipPlacements.forEach((key, value) -> {
             if (value == null) {
-                throw new IllegalStateException("Ship placement is not valid");
+                throw new GenericApiException("Ship placement is not valid");
             }
 
             value.forEach(i -> {
                 if (i < 0 || i >= 64) {
-                    throw new IllegalStateException("Ship placement is not valid");
+                    throw new GenericApiException("Ship placement is not valid");
                 }
             });
 
@@ -147,28 +192,37 @@ public class GameService {
     }
 
 
-    public AttackResultResource attack(String playerName, Integer attackPosition) {
+    public GameResource attack(String playerName, Integer attackPosition) {
         Game game = findGame();
 
-        AttackResultResource attackResultResource = game.attack(playerName, attackPosition);
+        AttackResult attackResult = game.attack(playerName, attackPosition);
 
-        if (attackResultResource.isMissed()) {
+        if (attackResult.isMissed()) {
             log.info("Player {} missed", playerName);
         } else {
             log.info("Player {} hit a ship at {}", playerName, attackPosition);
-            if (attackResultResource.isHasWon()) {
+            if (attackResult.isHasWon()) {
                 log.info("Player {} won the game", playerName);
-                runningGame = null;
+                playerRepository.findByPlayerName(playerName).ifPresent(player -> {
+                    player.setWins(player.getWins() + 1);
+                    playerRepository.save(player);
+                });
+                try {
+                    CompletableFuture.runAsync(() -> runningGame = null).get(10, TimeUnit.SECONDS);
+                } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                    throw new RuntimeException(e);
+                }
             }
         }
 
         updateGame(game);
 
-        return attackResultResource;
+        return getGameResourceForPlayer(playerName);
     }
 
     @Synchronized
     private void updateGame(Game game) {
+        game.setVersion(game.getVersion() + 1);
         runningGame = gameRecordRepository.save(game);
     }
 

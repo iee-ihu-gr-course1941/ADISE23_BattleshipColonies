@@ -1,0 +1,50 @@
+body {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    background: url('images/backgroundScoreboardIMG.jpg') no-repeat center center;
+    background-size: cover;
+}
+
+.container {
+    position: absolute;
+    top: 55%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 15%;
+    max-height: 50vh;
+    min-width: 250px;
+    overflow-y: auto;
+    background-color: rgba(255, 255, 255, 0.5);
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 100px;
+}
+
+#scoreboard .nameCell,
+#scoreboard .scoreCell {
+    padding: 8px 30px;
+    text-align: center;
+}
+
+header {
+   text-align: center;
+   display: flex;
+   flex-direction: column;
+   justify-content: center;
+   align-items: center;
+}
+
+h1 {
+   font-size: 60px;
+   color: white;
+   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+   font-family: Arial, sans-serif;
+}
+
+h2{
+   font-size: 60px;
+   color: white;
+   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+   font-family: Arial, sans-serif;
+}

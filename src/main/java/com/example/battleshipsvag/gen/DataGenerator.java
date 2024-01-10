@@ -1,8 +1,10 @@
 package com.example.battleshipsvag.gen;
 
 import com.example.battleshipsvag.GameRecordRepository;
+import com.example.battleshipsvag.PlayerRepository;
 import com.example.battleshipsvag.data.*;
 import com.github.javafaker.Faker;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,14 +19,15 @@ public class DataGenerator {
 
     private final GameRecordRepository gameRecordRepository;
     private final Faker faker = new Faker();
+    private final PlayerRepository playerRepository;
     public void generate() {
         gameRecordRepository.deleteAll();
         List<Game> games = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 100; i++) {
             games.add(new Game());
         }
 
-        games.stream().parallel().forEach(game -> {
+        games.forEach(game -> {
             GamePlayer gamePlayer1 = new GamePlayer();
             String character = faker.lordOfTheRings().character();
             gamePlayer1.setPlayerName(character);
@@ -49,6 +52,23 @@ public class DataGenerator {
             doBattle(gamePlayer1, gamePlayer2);
             game.calculateWinner();
             game.setStatus(GameStatus.FINISHED);
+
+            if (playerRepository.findByPlayerName(character).isEmpty()){
+                Player player = new Player();
+                player.setPlayerName(character);
+                playerRepository.save(player);
+            }
+
+            if (playerRepository.findByPlayerName(character2).isEmpty()){
+                Player player = new Player();
+                player.setPlayerName(character2);
+                playerRepository.save(player);
+            }
+
+            playerRepository.findByPlayerName(game.getWinner()).ifPresent(player -> {
+                player.setWins(player.getWins() + 1);
+                playerRepository.save(player);
+            });
         });
 
         log.info("Saving generated games to database - started");
@@ -108,7 +128,7 @@ public class DataGenerator {
         player2.setScore(p2Score);
     }
 
-    private <T> List<T> sublist(List<T> list, int ...indexes) {
+    private static  <T> List<T> sublist(List<T> list, int ...indexes) {
         List<T> subList = new ArrayList<>();
         for (int index : indexes) {
             subList.add(list.get(index));
@@ -116,7 +136,7 @@ public class DataGenerator {
         return subList;
     }
 
-    private Map<ShipType, List<Integer>> generateShipPlacement() {
+    public static Map<ShipType, List<Integer>> generateShipPlacement() {
         List<ShipType> shipTypes = Stream.of(ShipType.values()).filter(shipType -> shipType != ShipType.NONE).toList();
 
         List<BoardCell> board = new GamePlayer().getBoard();
@@ -146,7 +166,7 @@ public class DataGenerator {
 
         shipTypes.forEach(shipType -> {
             while(true) {
-                int randomSlotIndex = faker.random().nextInt(0, shipPlacementSlots.size() - 1);
+                int randomSlotIndex = new Random().nextInt(0, shipPlacementSlots.size() - 1);
                 String key = shipPlacementSlots.keySet().stream().toList().get(randomSlotIndex);
                 List<BoardCell> slot = shipPlacementSlots.get(key);
 

@@ -1,7 +1,8 @@
 package com.example.battleshipsvag.data;
 
 
-import com.example.battleshipsvag.resources.AttackResultResource;
+import com.example.battleshipsvag.exceptions.GenericApiException;
+import com.example.battleshipsvag.resources.AttackResult;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.OneToOne;
@@ -30,10 +31,13 @@ public class Game extends AbstractEntity {
         if (player1 == null) {
             player1 = player;
             player1.setLeader(true);
+            player1.setStatus(GamePlayerStatus.WAITING_FOR_PLAYER_TO_JOIN);
         } else if (player2 == null) {
             player2 = player;
+            player2.setStatus(GamePlayerStatus.WAITING_FOR_OPPONENT_TO_START_THE_GAME);
+            player1.setStatus(GamePlayerStatus.CAN_START_GAME);
         } else {
-            throw new IllegalStateException("Game is full");
+            throw new GenericApiException("Game is full");
         }
     }
 
@@ -50,19 +54,28 @@ public class Game extends AbstractEntity {
     public GamePlayer getGamePlayer(String playerName) {
         GamePlayer player = getGamePlayerOrNull(playerName);
         if (player == null) {
-            throw new IllegalStateException("Player not found");
+            throw new GenericApiException("Player not found");
         }
 
         return player;
     }
 
     public GamePlayer getOpponentPlayer(String playerName) {
+        GamePlayer player = getOpponentPlayerOrNull(playerName);
+        if (player == null) {
+            throw new GenericApiException("Player not found");
+        }
+
+        return player;
+    }
+
+    public GamePlayer getOpponentPlayerOrNull(String playerName) {
         if (player1 != null && player1.getPlayerName().equals(playerName)) {
             return player2;
         } else if (player2 != null && player2.getPlayerName().equals(playerName)) {
             return player1;
         } else {
-            throw new IllegalStateException("Player not found");
+            return null;
         }
     }
 
@@ -72,11 +85,6 @@ public class Game extends AbstractEntity {
 
     public boolean bothPlayersPresent() {
         return player1 != null && player2 != null;
-    }
-
-
-    public boolean waitingForShipPlacement() {
-        return player1 != null && player2 != null && !player1.isHasPlacedShips() && !player2.isHasPlacedShips();
     }
 
     public GamePlayer calculateWinner() {
@@ -91,48 +99,43 @@ public class Game extends AbstractEntity {
         }
     }
 
-    public boolean isPlayersTurn(String playerName) {
-        if (getGamePlayer(playerName).isTurn()) {
-            return true;
-        }
-
-        throw new IllegalStateException("It is not your turn");
-    }
-
     public void startGame(String playerName) {
         if (status != GameStatus.NEW) {
-            throw new IllegalStateException("Game has already started");
+            throw new GenericApiException("Game has already started");
         }
 
         if (!bothPlayersPresent()) {
-            throw new IllegalStateException("Both players must be present to start the game");
+            throw new GenericApiException("Both players must be present to start the game");
         }
 
         GamePlayer player = getGamePlayer(playerName);
 
         if (!player.isLeader()) {
-            throw new IllegalStateException("Only player " + player1.getPlayerName() + " can start the game");
+            throw new GenericApiException("Only player " + player1.getPlayerName() + " can start the game");
         }
 
         status = GameStatus.IN_PROGRESS;
-        player1.setTurn(true);
-        player2.setTurn(false);
+        player1.setStatus(GamePlayerStatus.BUILDING);
+        player2.setStatus(GamePlayerStatus.BUILDING);
     }
 
     public void placeShip(String playerName, Map<ShipType, List<Integer>> shipPlacements) {
         GamePlayer gamePlayer = getGamePlayer(playerName);
         List<BoardCell> board = gamePlayer.getBoard();
         shipPlacements.forEach((key, value) -> value.forEach(index -> board.get(index).setShipType(key)));
-        gamePlayer.setHasPlacedShips(true);
+
+        GamePlayer opponentPlayer = getOpponentPlayer(playerName);
+        if (opponentPlayer.getStatus() == GamePlayerStatus.WAITING_FOR_OPPONENT_BUILDING) {
+            getPlayer1().setStatus(GamePlayerStatus.ATTACKING);
+            getPlayer2().setStatus(GamePlayerStatus.WAITING_FOR_OPPONENT_ATTACKING);
+        } else {
+            gamePlayer.setStatus(GamePlayerStatus.WAITING_FOR_OPPONENT_BUILDING);
+        }
     }
 
-    public AttackResultResource attack(String playerName, Integer attackPosition) {
+    public AttackResult attack(String playerName, Integer attackPosition) {
         if (GameStatus.IN_PROGRESS != getStatus()) {
-            throw new IllegalStateException("Cannot Attack the game is not in progress");
-        }
-
-        if (waitingForShipPlacement()) {
-            throw new IllegalStateException("Cannot Attack not all players have placed their ships");
+            throw new GenericApiException("Cannot Attack the game is not in progress");
         }
 
         GamePlayer attackingPlayer = getGamePlayer(playerName);
@@ -142,8 +145,8 @@ public class Game extends AbstractEntity {
 
         boardCell.setHit(true);
         boolean missed = boardCell.getShipType() == ShipType.NONE;
-        AttackResultResource attackResultResource = new AttackResultResource();
-        attackResultResource.setMissed(missed);
+        AttackResult attackResult = new AttackResult();
+        attackResult.setMissed(missed);
 
         if (!missed) {
             attackingPlayer.setScore(attackingPlayer.getScore() + boardCell.getShipType().getSize());
@@ -151,10 +154,15 @@ public class Game extends AbstractEntity {
 
             if (winner != null) {
                 setStatus(GameStatus.FINISHED);
-                attackResultResource.setHasWon(winner.equals(attackingPlayer));
+                attackResult.setHasWon(winner.equals(attackingPlayer));
+                attackingPlayer.setStatus(GamePlayerStatus.FINISHED);
+                opponentPlayer.setStatus(GamePlayerStatus.FINISHED);
             }
+        } else {
+            opponentPlayer.setStatus(GamePlayerStatus.ATTACKING);
+            attackingPlayer.setStatus(GamePlayerStatus.WAITING_FOR_OPPONENT_ATTACKING);
         }
 
-        return attackResultResource;
+        return attackResult;
     }
 }

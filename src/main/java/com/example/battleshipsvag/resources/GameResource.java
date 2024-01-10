@@ -1,7 +1,7 @@
 package com.example.battleshipsvag.resources;
 
-import com.example.battleshipsvag.data.BoardCell;
-import com.example.battleshipsvag.data.GameStatus;
+import com.example.battleshipsvag.data.GamePlayerStatus;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -11,7 +11,9 @@ import java.util.List;
 @Setter @Getter
 public class GameResource {
     private String playerName;
-    private List<BoardCell> board = new ArrayList<>();
-    private GameStatus status;
-    private boolean canStartGame;
+    private List<BoardCellResource> board = new ArrayList<>();
+    private List<BoardCellResource> opponentBoard = new ArrayList<>();
+    private GamePlayerStatus status;
+    private boolean hasWon;
+    private String version;
 }

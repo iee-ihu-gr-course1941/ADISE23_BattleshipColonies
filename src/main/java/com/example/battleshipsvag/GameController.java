@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/game")
 @RequiredArgsConstructor
@@ -36,8 +38,13 @@ public class GameController {
     }
 
     @PutMapping("/attack")
-    public ResponseEntity<AttackResultResource> attack(@RequestHeader(PLAYER_TOKEN_HEADER) String token, @RequestBody AttackResource attackResource) {;
+    public ResponseEntity<GameResource> attack(@RequestHeader(PLAYER_TOKEN_HEADER) String token, @RequestBody AttackResource attackResource) {;
         return ResponseEntity.ok(gameService.attack(JwtUtil.getPlayerNameFromToken(token), attackResource.getAttackPosition()));
+    }
+
+    @GetMapping("/randomShipPositions")
+    public ResponseEntity<List<BoardCellResource>> randomShipPositions() {
+        return ResponseEntity.ok(gameService.getRandomShipPositions());
     }
 
 
